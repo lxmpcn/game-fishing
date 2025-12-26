@@ -1,3 +1,4 @@
+// 通用 UI 卡片組件：提供統一的像素風格邊框與容器樣式。
 
 import React from 'react';
 

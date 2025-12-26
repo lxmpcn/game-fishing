@@ -1,5 +1,6 @@
+// 釣魚場景組件：顯示主要的釣魚視覺效果、浮標動畫、天氣與日夜變化。
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { LocationId, ActiveBait, WeatherType } from '../types';
 import { BAITS, LOCATIONS, BOBBERS } from '../constants';
 import { Map, Bug, Zap, CloudRain, CloudLightning, AlertCircle } from 'lucide-react';
@@ -20,12 +21,19 @@ interface FishingSceneProps {
   weather: WeatherType;
 }
 
+interface Ripple {
+    id: number;
+    x: number;
+    y: number;
+}
+
 const FishingScene: React.FC<FishingSceneProps> = ({ 
   status, progress, onClick, dayTime, location, activeBait, activeBobberId, onSwitchLocation, onCycleBait, particles, combo, weather
 }) => {
   
   const locationDef = LOCATIONS.find(l => l.id === location) || LOCATIONS[0];
   const isNight = dayTime >= 0.5;
+  const [ripples, setRipples] = useState<Ripple[]>([]);
 
   // Generate random stars once
   const [stars] = useState(() => Array.from({ length: 30 }, () => ({
@@ -35,8 +43,28 @@ const FishingScene: React.FC<FishingSceneProps> = ({
     delay: Math.random() * 3
   })));
 
+  // Handle Click for both Game Logic AND Ripple Effect
+  const handleContainerClick = (e: React.MouseEvent) => {
+      // 1. Ripple Effect
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      
+      const newRipple = { id: Date.now(), x, y };
+      setRipples(prev => [...prev, newRipple]);
+      
+      // Cleanup ripple after animation
+      setTimeout(() => {
+          setRipples(prev => prev.filter(r => r.id !== newRipple.id));
+      }, 1000);
+
+      // 2. Trigger Game Action
+      onClick(e);
+  };
+
   // --- Dynamic Styling ---
   const getSkyClass = () => {
+    if (location === 'volcano') return isNight ? "bg-gradient-to-b from-[#2a0a0a] via-[#450a0a] to-[#1a0505]" : "bg-gradient-to-b from-[#7f1d1d] via-[#450a0a] to-[#2a0a0a]";
     if (location === 'sky') return isNight ? "bg-gradient-to-b from-indigo-950 via-purple-900 to-slate-900" : "bg-gradient-to-b from-sky-300 via-blue-300 to-indigo-200";
     if (location === 'deep_sea') return "bg-black"; // Pure black for deep sea
     
@@ -57,6 +85,7 @@ const FishingScene: React.FC<FishingSceneProps> = ({
       case 'river': return `${opacity} bg-gradient-to-b from-cyan-600 to-teal-900`;
       case 'swamp': return `${opacity} bg-gradient-to-b from-purple-800 to-black`;
       case 'deep_sea': return `${opacity} bg-gradient-to-b from-blue-950 to-black`;
+      case 'volcano': return `opacity-100 bg-gradient-to-b from-[#f97316] via-[#ea580c] to-[#7c2d12]`; // Lava
       case 'sky': return `${opacity} bg-gradient-to-b from-white/40 to-white/10`; 
       case 'pond': default: return `${opacity} bg-gradient-to-b from-emerald-600 to-slate-900`;
     }
@@ -113,18 +142,27 @@ const FishingScene: React.FC<FishingSceneProps> = ({
 
   return (
     <div 
-      className={`relative w-full h-64 sm:h-72 shrink-0 overflow-hidden border-b-4 border-slate-950 shadow-2xl cursor-pointer select-none group transition-colors duration-[3000ms] ${getSkyClass()}`}
-      onClick={onClick}
+      className={`relative w-full h-64 sm:h-72 shrink-0 overflow-hidden shadow-2xl cursor-pointer select-none group transition-colors duration-[3000ms] ${getSkyClass()}`}
+      onClick={handleContainerClick}
     >
       <style>{`
         @keyframes water-surface {
           0% { background-position: 0% 0%; }
           100% { background-position: 100% 100%; }
         }
+        @keyframes lava-flow {
+          0% { background-position: 0% 0%; }
+          100% { background-position: -50% 50%; }
+        }
         .water-texture {
           background-image: radial-gradient(rgba(255,255,255,0.1) 1px, transparent 1px);
           background-size: 20px 20px;
           animation: water-surface 10s linear infinite;
+        }
+        .lava-texture {
+          background-image: radial-gradient(rgba(255,200,0,0.3) 2px, transparent 2px);
+          background-size: 40px 40px;
+          animation: lava-flow 15s linear infinite;
         }
         @keyframes twinkle {
           0%, 100% { opacity: 0.3; transform: scale(0.8); }
@@ -134,10 +172,20 @@ const FishingScene: React.FC<FishingSceneProps> = ({
           0% { transform: translateY(-100vh) translateX(0); }
           100% { transform: translateY(100vh) translateX(-20px); }
         }
+        @keyframes ash-fall {
+          0% { transform: translateY(-100vh) translateX(-20px) rotate(0deg); opacity: 0; }
+          10% { opacity: 1; }
+          90% { opacity: 1; }
+          100% { transform: translateY(100vh) translateX(20px) rotate(180deg); opacity: 0; }
+        }
         @keyframes lightning {
           0%, 90%, 100% { opacity: 0; }
           92%, 94% { opacity: 0.8; }
           93% { opacity: 0.2; }
+        }
+        @keyframes ripple {
+            0% { width: 0px; height: 0px; opacity: 0.8; border-width: 4px; }
+            100% { width: 100px; height: 100px; opacity: 0; border-width: 0px; }
         }
         .rain-drop {
            position: absolute;
@@ -146,8 +194,29 @@ const FishingScene: React.FC<FishingSceneProps> = ({
            height: 10px;
            animation: rain-fall 0.8s linear infinite;
         }
+        .ash-particle {
+           position: absolute;
+           background: rgba(100,100,100,0.6);
+           width: 4px;
+           height: 4px;
+           animation: ash-fall 6s linear infinite;
+        }
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            animation: ripple 0.6s linear forwards;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            z-index: 15;
+        }
       `}</style>
       
+      {/* Ripple Container */}
+      {ripples.map(r => (
+          <div key={r.id} className="ripple" style={{ left: r.x, top: r.y }}></div>
+      ))}
+
       {/* Particle Overlay Layer */}
       <ParticleOverlay particles={particles} />
 
@@ -211,7 +280,7 @@ const FishingScene: React.FC<FishingSceneProps> = ({
       {/* --- SKY OBJECTS --- */}
       
       {/* Rain / Storm Effects */}
-      {(weather === 'Rain' || weather === 'Storm') && (
+      {(weather === 'Rain' || weather === 'Storm') && location !== 'volcano' && (
         <div className="absolute inset-0 pointer-events-none z-10 opacity-50">
            {/* Generate fixed number of raindrops */}
            {Array.from({length: 40}).map((_,i) => (
@@ -224,6 +293,20 @@ const FishingScene: React.FC<FishingSceneProps> = ({
            ))}
         </div>
       )}
+
+      {/* Ash Fall (Volcano only) */}
+      {location === 'volcano' && (
+          <div className="absolute inset-0 pointer-events-none z-10">
+              {Array.from({length: 20}).map((_,i) => (
+                  <div key={i} className="ash-particle" style={{
+                      left: `${Math.random() * 100}%`,
+                      top: `-${Math.random() * 20}%`,
+                      animationDelay: `${Math.random() * 5}s`,
+                      animationDuration: `${4 + Math.random() * 4}s`
+                  }}></div>
+              ))}
+          </div>
+      )}
       
       {/* Lightning Flash */}
       {weather === 'Storm' && (
@@ -232,7 +315,7 @@ const FishingScene: React.FC<FishingSceneProps> = ({
 
       {/* Stars */}
       <div className={`absolute inset-0 transition-opacity duration-[3000ms] ${isNight || location === 'sky' || location === 'deep_sea' ? 'opacity-100' : 'opacity-0'}`}>
-        {weather !== 'Storm' && stars.map((s, i) => ( // Hide stars in storm
+        {weather !== 'Storm' && location !== 'volcano' && stars.map((s, i) => ( // Hide stars in storm/volcano
            <div 
              key={i}
              className="absolute bg-white rounded-full"
@@ -248,8 +331,8 @@ const FishingScene: React.FC<FishingSceneProps> = ({
         ))}
       </div>
 
-      {/* Sun/Moon - Hidden in Deep Sea */}
-      {(weather === 'Sunny' || weather === 'Rain') && location !== 'deep_sea' && (
+      {/* Sun/Moon - Hidden in Deep Sea/Volcano */}
+      {(weather === 'Sunny' || weather === 'Rain') && location !== 'deep_sea' && location !== 'volcano' && (
         <div 
           className={`absolute w-16 h-16 rounded-full blur-[4px] transition-all duration-[5000ms]
             ${isNight ? 'bg-slate-100 shadow-[0_0_50px_rgba(255,255,255,0.5)] opacity-90' : 'bg-yellow-200 shadow-[0_0_60px_rgba(255,200,50,0.9)] opacity-100'}
@@ -261,16 +344,21 @@ const FishingScene: React.FC<FishingSceneProps> = ({
         ></div>
       )}
 
-      {/* Clouds - Hidden in Deep Sea */}
-      {location !== 'deep_sea' && (
+      {/* Clouds - Hidden in Deep Sea/Volcano */}
+      {location !== 'deep_sea' && location !== 'volcano' && (
           <>
             <div className={`absolute top-10 left-10 w-32 h-8 rounded-full blur-md animate-pulse duration-[8s] ${isNight ? 'bg-white/5' : 'bg-white/60'}`}></div>
             <div className={`absolute top-24 left-1/2 w-48 h-10 rounded-full blur-md animate-pulse duration-[12s] ${isNight ? 'bg-white/5' : 'bg-white/40'}`}></div>
           </>
       )}
 
+      {/* Volcano Plume */}
+      {location === 'volcano' && (
+          <div className="absolute bottom-32 left-1/4 w-32 h-64 bg-black/40 blur-2xl transform -skew-x-12 animate-pulse"></div>
+      )}
+
       {/* --- BACKGROUND LAYER --- */}
-      <div className="absolute bottom-[30%] left-0 w-full h-40 flex items-end opacity-90 pointer-events-none">
+      <div className="absolute bottom-[40%] left-0 w-full h-40 flex items-end opacity-90 pointer-events-none">
         {location === 'ocean' ? (
            <div className="w-full h-8 bg-blue-900/40 blur-sm translate-y-4"></div>
         ) : location === 'river' ? (
@@ -291,6 +379,13 @@ const FishingScene: React.FC<FishingSceneProps> = ({
                <div className="absolute bottom-5 left-10 w-2 h-10 bg-cyan-500/20 blur-sm rounded-full animate-pulse"></div>
                <div className="absolute bottom-8 right-20 w-2 h-14 bg-purple-500/20 blur-sm rounded-full animate-pulse delay-500"></div>
             </>
+        ) : location === 'volcano' ? (
+            <>
+                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-t from-red-950 to-transparent opacity-80"></div>
+                {/* Jagged Rocks */}
+                <div className="absolute bottom-0 left-[-20px] w-40 h-32 bg-[#1a0505] transform rotate-12"></div>
+                <div className="absolute bottom-0 right-[-20px] w-40 h-40 bg-[#1a0505] transform -rotate-12"></div>
+            </>
         ) : location === 'sky' ? (
             <>
                <div className="absolute top-0 left-0 w-full h-full bg-white/10 blur-xl"></div>
@@ -305,10 +400,10 @@ const FishingScene: React.FC<FishingSceneProps> = ({
       </div>
 
       {/* --- WATER LAYER --- */}
-      <div className={`absolute bottom-0 w-full h-[35%] border-t backdrop-blur-[2px] overflow-hidden transition-colors duration-1000 ${getWaterClass()}`}>
+      <div className={`absolute bottom-0 w-full h-[45%] backdrop-blur-[2px] overflow-hidden transition-colors duration-1000 ${getWaterClass()}`}>
         
         {/* Animated Texture */}
-        <div className="absolute inset-0 opacity-20 water-texture"></div>
+        <div className={`absolute inset-0 opacity-20 ${location === 'volcano' ? 'lava-texture mix-blend-color-dodge' : 'water-texture'}`}></div>
         
         {/* Dynamic Reflection (Hidden in Deep Sea) */}
         {location !== 'deep_sea' && (
@@ -344,10 +439,10 @@ const FishingScene: React.FC<FishingSceneProps> = ({
       <div className={`
         absolute left-1/2 z-10 transition-all duration-300 origin-top
         ${status === 'IDLE' ? 'bottom-[35%] opacity-0 translate-y-10' : 'opacity-100'}
-        ${status === 'WAITING' ? 'bottom-[33%] -translate-x-1/2 animate-bob' : ''}
-        ${status === 'BITING' ? 'bottom-[30%] animate-shake' : ''} 
-        ${status === 'REELING' ? 'bottom-[32%] -translate-x-1/2' : ''} 
-        ${status === 'CASTING' ? 'bottom-[35%] -translate-x-1/2' : ''}
+        ${status === 'WAITING' ? 'bottom-[42%] -translate-x-1/2 animate-bob' : ''}
+        ${status === 'BITING' ? 'bottom-[40%] animate-shake' : ''} 
+        ${status === 'REELING' ? 'bottom-[42%] -translate-x-1/2' : ''} 
+        ${status === 'CASTING' ? 'bottom-[45%] -translate-x-1/2' : ''}
       `}
       style={{
          // Add dynamic shake based on progress during reeling

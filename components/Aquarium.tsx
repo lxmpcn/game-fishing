@@ -1,3 +1,4 @@
+// 水族箱組件：展示已收藏的魚類動畫，並計算隨時間產生的被動收益。
 
 import React, { useMemo, useState } from 'react';
 import { CaughtFish, Rarity } from '../types';
@@ -10,8 +11,6 @@ import { Coins, ArrowDownToLine, ArrowDownUp } from 'lucide-react';
 interface AquariumProps {
   fish: CaughtFish[];
   tankLevel: number;
-  hiredCrew: string[];
-  crewLevels: Record<string, number>;
   activeSkinId: string;
   onSell: (id: string) => void;
   onRetrieve: (id: string) => void;
@@ -191,11 +190,11 @@ const DecorLayer: React.FC<{ type?: string }> = ({ type }) => {
     return null;
 };
 
-const Aquarium: React.FC<AquariumProps> = ({ fish, tankLevel, hiredCrew, crewLevels, activeSkinId, onSell, onRetrieve }) => {
+const Aquarium: React.FC<AquariumProps> = ({ fish, tankLevel, activeSkinId, onSell, onRetrieve }) => {
   const [sortBy, setSortBy] = useState<SortOption>('INCOME_HIGH');
   
   const capacity = getTankCapacity(tankLevel);
-  const incomePerTenSec = calculateAquariumIncome(fish, hiredCrew, crewLevels);
+  const incomePerTenSec = calculateAquariumIncome(fish);
   const incomePerMin = incomePerTenSec * 6;
   const skin = AQUARIUM_SKINS.find(s => s.id === activeSkinId) || AQUARIUM_SKINS[0];
 

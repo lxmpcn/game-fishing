@@ -1,6 +1,7 @@
+// 遊戲邏輯服務：處理核心算法，如釣魚機率計算、離線收益、數值格式化與存檔管理。
 
-import { BAITS, BOBBERS, CATS, FISH_TYPES, QUEST_TEMPLATES } from '../constants';
-import { BonusType, CaughtFish, GameState, LocationId, Rarity, UpgradeDef, WeatherType, Quest, FishRecord } from '../types';
+import { BAITS, FISH_TYPES } from '../constants';
+import { CaughtFish, GameState, LocationId, Rarity, UpgradeDef, WeatherType } from '../types';
 
 // Utility: Order of Magnitude Formatting
 export const formatNumber = (num: number): string => {
@@ -24,47 +25,22 @@ export const getUpgradeCost = (upgrade: UpgradeDef, currentLevel: number): numbe
 };
 
 export const getTankCapacity = (level: number): number => {
-  return 5 + (level * 2); // Base 5, +2 per level
+  return 10 + (level * 2); // Base 10, +2 per level
 };
 
-export const getCrewBonus = (hiredCrew: string[], crewLevels: Record<string, number>, type: BonusType): number => {
-  if (!hiredCrew) return 0;
-  return hiredCrew.reduce((sum, id) => {
-    const cat = CATS.find(c => c.id === id);
-    const level = crewLevels?.[id] || 1;
-    
-    // Level scaling: Each level adds 10% effectiveness to the base bonus
-    const levelMultiplier = 1 + (0.1 * (level - 1));
-
-    if (cat && cat.bonusType === type) {
-      return sum + (cat.bonusValue * levelMultiplier);
-    }
-    return sum;
-  }, 0);
-};
-
-// Calculate cost for upgrading a crew member
-export const getCrewUpgradeCost = (baseCost: number, currentLevel: number): number => {
-    // Price scales steeper than regular upgrades
-    return Math.floor(baseCost * Math.pow(1.5, currentLevel));
-};
-
-export const calculateAquariumIncome = (aquarium: CaughtFish[], hiredCrew: string[], crewLevels: Record<string, number>): number => {
+export const calculateAquariumIncome = (aquarium: CaughtFish[]): number => {
   const validFish = aquarium.filter(f => true); 
   const baseIncome = validFish.reduce((sum, fish) => {
       // Base income is 5% of price, but AT LEAST 1
       return sum + Math.max(1, Math.floor(fish.price * 0.05));
   }, 0);
   
-  const multiplier = 1 + getCrewBonus(hiredCrew, crewLevels, 'INCOME_MULT');
-  return Math.floor(baseIncome * multiplier);
+  return Math.floor(baseIncome);
 };
 
 export const calculateOfflineEarnings = (
   lastSaveTime: number, 
   aquarium: CaughtFish[], 
-  hiredCrew: string[],
-  crewLevels: Record<string, number>,
   offlineLevel: number = 0
 ): number => {
   const now = Date.now();
@@ -79,7 +55,7 @@ export const calculateOfflineEarnings = (
   const totalSeconds = Math.floor(cappedDiffMs / 1000);
   const ticks = Math.floor(totalSeconds / 10);
   
-  const incomePerTick = calculateAquariumIncome(aquarium, hiredCrew, crewLevels);
+  const incomePerTick = calculateAquariumIncome(aquarium);
   
   return ticks * incomePerTick;
 };
@@ -89,8 +65,6 @@ export const getFish = (
   gameTime: number, 
   location: LocationId, 
   activeBaitId: string | null,
-  hiredCrew: string[],
-  crewLevels: Record<string, number>,
   weather: WeatherType,
   safetyLevel: number = 0
 ): CaughtFish => {
@@ -100,7 +74,6 @@ export const getFish = (
 
   // --- Calculate Luck ---
   let luckBonus = luckLevel * 0.02; // Base luck from upgrades
-  luckBonus += getCrewBonus(hiredCrew, crewLevels, 'LUCK_FLAT');
 
   if (weather === 'Rain') luckBonus += 0.05;
   if (weather === 'Storm') {
@@ -207,69 +180,6 @@ export const getFish = (
     caughtAt: Date.now(),
     size: finalSize
   };
-};
-
-export const generateQuests = (currentQuests: Quest[], currentLocation: LocationId): Quest[] => {
-  // Only replenish if we have less than 3 active quests
-  const activeQuests = currentQuests.filter(q => !q.isClaimed);
-  if (activeQuests.length >= 3) return activeQuests;
-
-  const newQuests = [...activeQuests];
-  const required = 3 - activeQuests.length;
-
-  const typedTemplates = QUEST_TEMPLATES as Record<string, Array<{
-    title: string;
-    giver: string;
-    desc: string;
-    type: string;
-    targetId?: string;
-  }>>;
-
-  const templates = typedTemplates[currentLocation] || typedTemplates['pond'];
-
-  for (let i = 0; i < required; i++) {
-    const rand = Math.random();
-    const id = crypto.randomUUID();
-    const template = templates[Math.floor(Math.random() * templates.length)];
-    
-    let targetValue = 0;
-    let reward = 0;
-    let reqText = '';
-
-    if (template.type === 'CATCH_COUNT') {
-        targetValue = 5 + Math.floor(Math.random() * 10);
-        reward = targetValue * 50;
-        reqText = `釣起 ${targetValue} 條魚`;
-    } else if (template.type === 'EARN_MONEY') {
-        targetValue = 500 + Math.floor(Math.random() * 1500);
-        reward = Math.floor(targetValue * 0.4);
-        reqText = `賺取 ${formatNumber(targetValue)}G`;
-    } else if (template.type === 'CATCH_RARITY') {
-        targetValue = 2 + Math.floor(Math.random() * 3);
-        const rarityName = template.targetId === 'Junk' ? '雜物' : '稀有魚';
-        reward = targetValue * 200;
-        reqText = `釣起 ${targetValue} 個${rarityName}`;
-    }
-
-    // Add some randomness to rewards
-    reward = Math.floor(reward * (0.8 + Math.random() * 0.4));
-
-    newQuests.push({
-        id,
-        title: template.title,
-        giver: template.giver,
-        description: template.desc,
-        requirementText: reqText,
-        targetType: template.type as any,
-        targetValue,
-        targetId: template.targetId,
-        currentValue: 0,
-        reward,
-        isCompleted: false,
-        isClaimed: false
-    });
-  }
-  return newQuests;
 };
 
 export const saveGame = (state: GameState, username: string = 'guest') => {

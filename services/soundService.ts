@@ -1,3 +1,4 @@
+// 音效服務：使用 Web Audio API 處理背景音樂 (BGM)、環境音效 (Ambience) 與操作音效 (SFX)。
 
 import { WeatherType, LocationId } from '../types';
 
@@ -119,6 +120,17 @@ class SoundService {
     return this.isMuted;
   }
 
+  // --- HAPTICS ---
+  public vibrate(pattern: number | number[]) {
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+          try {
+              navigator.vibrate(pattern);
+          } catch (e) {
+              // Ignore errors (some browsers/devices restrict this)
+          }
+      }
+  }
+
   // --- AMBIENCE GENERATOR (White Noise) ---
   private createNoiseBuffer(): AudioBuffer | null {
     if (!this.ctx) return null;
@@ -224,8 +236,6 @@ class SoundService {
       if (!this.ctx || !this.bgmGain) return;
       
       // Simple generative Pentatonic Ambient
-      // Notes: C4, D4, E4, G4, A4 (C Major Pentatonic)
-      // Frequencies: 261.63, 293.66, 329.63, 392.00, 440.00
       const notes = [196.00, 261.63, 293.66, 329.63, 392.00, 440.00, 523.25];
       
       const playNote = () => {
@@ -234,16 +244,13 @@ class SoundService {
           const osc = this.ctx.createOscillator();
           const gain = this.ctx.createGain();
           
-          // Soft tone
           osc.type = Math.random() > 0.5 ? 'sine' : 'triangle';
           
           const note = notes[Math.floor(Math.random() * notes.length)];
-          // Occasionally octave up/down
           const octave = Math.random() > 0.8 ? 2 : (Math.random() > 0.8 ? 0.5 : 1);
           
           osc.frequency.value = note * octave;
           
-          // Envelope
           const t = this.ctx.currentTime;
           const attack = 0.5 + Math.random();
           const decay = 2 + Math.random() * 3;
@@ -258,19 +265,16 @@ class SoundService {
           osc.start(t);
           osc.stop(t + attack + decay + 1);
           
-          // Clean up later
           setTimeout(() => {
               osc.disconnect();
               gain.disconnect();
           }, (attack + decay + 1) * 1000);
       };
 
-      // Play initially
       playNote();
       
-      // Loop
       this.musicInterval = setInterval(() => {
-          if (Math.random() > 0.3) playNote(); // Random density
+          if (Math.random() > 0.3) playNote();
       }, 2500);
   }
 
@@ -279,8 +283,40 @@ class SoundService {
           clearInterval(this.musicInterval);
           this.musicInterval = null;
       }
-      // Audio nodes clean themselves up via setTimeout in playNote, 
-      // or we could track them in musicNodes array if we needed instant cut.
+  }
+
+  // --- JAY CHOU EASTER EGG (Nocturne Melody Simulation) ---
+  public playNocturne() {
+      if (!this.ctx || !this.sfxGain) return;
+
+      // Simplified melody notes for Nocturne chorus start (approx)
+      // D#4, F4, F4, F4, D#4, D#4, C4, A#3... converted to frequency
+      const melody = [
+          { f: 311.13, d: 0.2 }, { f: 349.23, d: 0.2 }, { f: 349.23, d: 0.2 }, { f: 349.23, d: 0.4 }, 
+          { f: 311.13, d: 0.2 }, { f: 311.13, d: 0.4 }, { f: 261.63, d: 0.4 }, { f: 233.08, d: 0.8 }
+      ];
+
+      let currentTime = this.ctx.currentTime + 0.1;
+
+      melody.forEach(note => {
+          const osc = this.ctx!.createOscillator();
+          const gain = this.ctx!.createGain();
+          
+          osc.type = 'triangle'; // Softer, piano-ish vibe
+          osc.frequency.value = note.f;
+          
+          osc.connect(gain);
+          gain.connect(this.sfxGain!); // Use SFX channel so it plays over BGM
+
+          gain.gain.setValueAtTime(0, currentTime);
+          gain.gain.linearRampToValueAtTime(0.3, currentTime + 0.05);
+          gain.gain.exponentialRampToValueAtTime(0.01, currentTime + note.d);
+
+          osc.start(currentTime);
+          osc.stop(currentTime + note.d + 0.1);
+
+          currentTime += note.d;
+      });
   }
 
   // --- SFX ---

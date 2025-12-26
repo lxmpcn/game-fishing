@@ -1,3 +1,4 @@
+// 背包組件：顯示已捕獲的魚類，提供出售與放入水族箱的功能。
 
 import React, { useState, useMemo } from 'react';
 import { CaughtFish, Rarity } from '../types';

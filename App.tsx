@@ -1,3 +1,4 @@
+// 主應用程式組件：管理遊戲核心狀態 (State)、遊戲迴圈 (Loop) 與各個子畫面的切換邏輯。
 
 import React, { useState, useEffect, useRef } from 'react';
 import Layout from './components/Layout';
@@ -5,19 +6,16 @@ import FishingScene from './components/GameView';
 import Inventory from './components/Inventory';
 import Aquarium from './components/Aquarium';
 import Shop from './components/Shop';
-import Crew from './components/Crew';
 import PixelCard from './components/PixelCard';
 import StartScreen from './components/StartScreen';
 import LoginScreen from './components/LoginScreen';
-import SettingsModal from './components/SettingsModal';
-import TutorialModal from './components/TutorialModal';
 import AlmanacModal from './components/AlmanacModal';
-import QuestBoard from './components/QuestBoard';
-import StoryModal from './components/StoryModal';
+import ProfileModal from './components/ProfileModal';
+import TutorialOverlay from './components/TutorialOverlay'; 
 import { Particle } from './components/ParticleOverlay';
-import { GameState, WeatherType, StoryEvent } from './types';
-import { UPGRADES, BAITS, LOCATIONS, CATS, FISH_TYPES, BOBBERS, STORY_EVENTS, AQUARIUM_SKINS } from './constants';
-import { getFish, getUpgradeCost, loadGame, saveGame, clearSave, getTankCapacity, calculateAquariumIncome, getCrewBonus, calculateOfflineEarnings, formatNumber, generateQuests, getCrewUpgradeCost } from './services/gameService';
+import { GameState, WeatherType, FishRecord } from './types';
+import { UPGRADES, BAITS, LOCATIONS, FISH_TYPES, BOBBERS, AQUARIUM_SKINS } from './constants';
+import { getFish, getUpgradeCost, loadGame, saveGame, getTankCapacity, calculateAquariumIncome, calculateOfflineEarnings, formatNumber } from './services/gameService';
 import { soundManager } from './services/soundService';
 import { Coins } from 'lucide-react';
 
@@ -31,7 +29,7 @@ const INITIAL_STATE: GameState = {
   upgrades: {},
   unlockedFish: [],
   fishRecords: {},
-  quests: [],
+  // quests removed
   gameTime: 0.2,
   weather: 'Sunny',
   activeLocation: 'pond',
@@ -46,15 +44,20 @@ const INITIAL_STATE: GameState = {
   unlockedSkins: ['default'],
   activeSkinId: 'default',
 
-  hiredCrew: [],
-  crewLevels: {},
   stats: {
     totalFishCaught: 0,
     totalMoneyEarned: 0,
   },
   
-  viewedStories: [],
-  lastSaveTime: Date.now()
+  // Special Flags
+  // canBuyLebronMap removed
+  playerAvatar: 'guest', // Default
+  playerName: '冒險者', // Default Name
+
+  lastSaveTime: Date.now(),
+  
+  // Tutorial State (0=Done, 1=Start)
+  tutorialStep: 0
 };
 
 type GameStatus = 'IDLE' | 'CASTING' | 'WAITING' | 'BITING' | 'REELING';
@@ -65,20 +68,19 @@ const App: React.FC = () => {
   const [appPhase, setAppPhase] = useState<AppPhase>('START');
   const [currentUser, setCurrentUser] = useState<string>('guest');
   
-  const [showSettings, setShowSettings] = useState(false);
-  const [showTutorial, setShowTutorial] = useState(false);
   const [showAlmanac, setShowAlmanac] = useState(false);
-  const [activeStory, setActiveStory] = useState<StoryEvent | null>(null);
+  const [showProfile, setShowProfile] = useState(false);
   
   const [gameState, setGameState] = useState<GameState>(INITIAL_STATE);
   const [status, setStatus] = useState<GameStatus>('IDLE');
   const [progress, setProgress] = useState(0);
-  const [activeTab, setActiveTab] = useState<'INVENTORY' | 'SHOP' | 'AQUARIUM' | 'CREW'>('INVENTORY');
+  const [activeTab, setActiveTab] = useState<'INVENTORY' | 'SHOP' | 'AQUARIUM'>('INVENTORY');
   const [showMapSelector, setShowMapSelector] = useState(false);
   
   // New States for Effects & Offline
   const [particles, setParticles] = useState<Particle[]>([]);
   const [offlineEarnings, setOfflineEarnings] = useState<number>(0);
+  const [isShaking, setIsShaking] = useState(false); // Screen Shake State
 
   // Combo System
   const [combo, setCombo] = useState(0);
@@ -102,57 +104,13 @@ const App: React.FC = () => {
     }
   }, [gameState.activeLocation, gameState.weather, appPhase]);
 
-  // --- STORY CHECKER ---
-  useEffect(() => {
-      if (appPhase !== 'GAME') return;
-      
-      const checkStories = () => {
-          const s = stateRef.current;
-          const viewed = s.viewedStories || [];
-          
-          // Helper to trigger story
-          const trigger = (storyId: string) => {
-              if (!viewed.includes(storyId) && !activeStory) {
-                  const event = STORY_EVENTS.find(e => e.id === storyId);
-                  if (event) {
-                      setActiveStory(event);
-                      setGameState(prev => ({
-                          ...prev,
-                          viewedStories: [...(prev.viewedStories || []), storyId]
-                      }));
-                  }
-              }
-          };
-
-          // 1. Intro
-          trigger('intro');
-
-          // 2. First Catch
-          if (s.stats.totalFishCaught >= 1) trigger('first_catch');
-
-          // 3. First 1000 G
-          if (s.stats.totalMoneyEarned >= 1000) trigger('rich');
-
-          // 4. Location specific stories
-          if (s.activeLocation === 'river') trigger('unlock_river');
-          if (s.activeLocation === 'ocean') trigger('unlock_ocean');
-          if (s.activeLocation === 'swamp') trigger('unlock_swamp');
-          if (s.activeLocation === 'deep_sea') trigger('unlock_deep_sea');
-          if (s.activeLocation === 'sky') trigger('unlock_sky');
-      };
-
-      const interval = setInterval(checkStories, 1000);
-      return () => clearInterval(interval);
-  }, [appPhase, activeStory, gameState.activeLocation]);
-
-
   // --- LOGIN LOGIC ---
   const goToLogin = () => {
       soundManager.playSfx('CLICK');
       setAppPhase('LOGIN');
   };
 
-  const handleLogin = (username: string, isDevAcc: boolean) => {
+  const handleLogin = (username: string, isDevAcc: boolean, displayName?: string) => {
     setCurrentUser(username);
     soundManager.init();
     soundManager.playSfx('CLICK');
@@ -166,7 +124,7 @@ const App: React.FC = () => {
       // Calculate offline earnings if normal save exists
       if (saved.lastSaveTime && saved.aquarium.length > 0) {
         const offlineLevel = saved.upgrades['offline_storage'] || 0;
-        const earned = calculateOfflineEarnings(saved.lastSaveTime, saved.aquarium, saved.hiredCrew || [], saved.crewLevels || {}, offlineLevel);
+        const earned = calculateOfflineEarnings(saved.lastSaveTime, saved.aquarium, offlineLevel);
         if (earned > 0) {
           setOfflineEarnings(earned);
           saved.money += earned;
@@ -179,12 +137,6 @@ const App: React.FC = () => {
           saved.baitInventory = { [saved.activeBait.id]: saved.activeBait.chargesRemaining };
           saved.activeBaitId = saved.activeBait.id;
           saved.activeBait = null;
-      }
-      if (!saved.crewLevels) {
-          saved.crewLevels = {};
-          if (saved.hiredCrew) {
-              saved.hiredCrew.forEach(cid => { saved.crewLevels[cid] = 1; });
-          }
       }
       if (!saved.unlockedBobbers) {
           saved.unlockedBobbers = ['classic'];
@@ -203,56 +155,91 @@ const App: React.FC = () => {
         ...nextState, 
         ...saved,
         fishRecords: saved.fishRecords || {},
-        quests: saved.quests || [],
+        // quests removed
         baitInventory: saved.baitInventory || {},
-        crewLevels: saved.crewLevels || {},
         activeBaitId: saved.activeBaitId || null,
         unlockedBobbers: saved.unlockedBobbers || ['classic'],
         activeBobberId: saved.activeBobberId || 'classic',
         unlockedSkins: saved.unlockedSkins || ['default'],
         activeSkinId: saved.activeSkinId || 'default',
-        viewedStories: saved.viewedStories || [],
         activeBait: null, 
-        lastSaveTime: Date.now()
+        // canBuyLebronMap logic removed
+        playerAvatar: saved.playerAvatar || 'guest',
+        playerName: saved.playerName || displayName || username, 
+        lastSaveTime: Date.now(),
+        // Ensure tutorial step is loaded, default to 0 (done) for existing saves unless explicitly 0 is new
+        tutorialStep: saved.tutorialStep !== undefined ? saved.tutorialStep : 0
       };
+    } else {
+        // New Game - Set playerName & Tutorial Step 1
+        nextState.playerName = displayName || username;
+        nextState.tutorialStep = 1; // Start tutorial for new players
     }
 
     if (isDevAcc) {
+      // Super Account Logic
       nextState.money = 999999999;
-      nextState.gems = 1000;
+      nextState.gems = 9999;
       nextState.xp = 1000000;
       nextState.unlockedLocations = LOCATIONS.map(l => l.id as any);
-      nextState.upgrades = {
-         ...nextState.upgrades,
-         'rod_speed': 50,
-         'bait_luck': 20,
-         'tank_size': 10,
-         'auto_cast': 10,
-         'auto_reel': 10,
-         'offline_storage': 10,
-         'life_jacket': 5
-      };
+      // nextState.canBuyLebronMap = true; // Removed
+      nextState.unlockedBobbers = BOBBERS.map(b => b.id);
+      nextState.unlockedSkins = AQUARIUM_SKINS.map(s => s.id);
+      nextState.baitInventory['basketball_bait'] = 999;
+      nextState.tutorialStep = 0; // Skip tutorial
+      
+      // Max Upgrades
+      const maxUpgrades: Record<string, number> = {};
+      UPGRADES.forEach(u => { maxUpgrades[u.id] = u.maxLevel; });
+      nextState.upgrades = maxUpgrades;
+
+      // Unlock all fish in Almanac
+      const allFishRecords: Record<string, FishRecord> = {};
+      FISH_TYPES.forEach(f => {
+          allFishRecords[f.id] = {
+              caughtCount: 1,
+              minSize: f.minSize || 1,
+              maxSize: f.maxSize || 10,
+              discovered: true
+          }
+      });
+      nextState.fishRecords = allFishRecords;
     }
 
     setGameState(nextState);
     setAppPhase('GAME');
   };
 
+  const handleGuestLogin = (guestName: string) => {
+      // Use standard handleLogin with 'guest' UID but custom display name
+      handleLogin('guest', false, guestName);
+  };
+
   const handleLogout = () => {
       saveGame(stateRef.current, currentUserRef.current); // Force save before exit
       setAppPhase('START');
       setGameState(INITIAL_STATE);
-      setShowSettings(false);
+      setShowProfile(false);
   };
 
   const handleResetSave = () => {
     // Soft Reset: Overwrite save with initial state but keep the file/key (Account preservation)
-    const resetState = { ...INITIAL_STATE };
+    const resetState = { ...INITIAL_STATE, playerName: gameState.playerName, tutorialStep: 1 };
     saveGame(resetState, currentUser);
     setGameState(resetState);
-    setShowSettings(false);
+    setShowProfile(false);
     // Restart the game flow
     setAppPhase('START');
+  };
+
+  const changeAvatar = (avatarId: string) => {
+      soundManager.playSfx('CLICK');
+      setGameState(prev => ({ ...prev, playerAvatar: avatarId }));
+  };
+
+  const changeName = (newName: string) => {
+      soundManager.playSfx('CLICK');
+      setGameState(prev => ({ ...prev, playerName: newName }));
   };
 
   // Save Loop
@@ -326,8 +313,8 @@ const App: React.FC = () => {
         });
       }
 
-      // 2. Weather Cycle
-      if (ticks % 600 === 0) {
+      // 2. Weather Cycle (3 mins)
+      if (ticks % 3600 === 0) {
          setGameState(prev => {
            const roll = Math.random();
            let newWeather: WeatherType = 'Sunny';
@@ -339,7 +326,7 @@ const App: React.FC = () => {
 
       // 3. Aquarium Income
       if (ticks % 200 === 0 && s.aquarium.length > 0) {
-        const income = calculateAquariumIncome(s.aquarium, s.hiredCrew, s.crewLevels);
+        const income = calculateAquariumIncome(s.aquarium);
         if (income > 0) {
           setGameState(prev => ({
              ...prev,
@@ -349,18 +336,11 @@ const App: React.FC = () => {
         }
       }
 
-      // 4. Quest Generation (Every minute roughly)
-      if (ticks % 1200 === 0) {
-         setGameState(prev => ({
-            ...prev,
-            quests: generateQuests(prev.quests, prev.activeLocation) // Pass activeLocation
-         }));
-      }
+      // Quest Generation Removed
 
       // --- Fishing Logic ---
       const rodLevel = s.upgrades['rod_speed'] || 0;
       const autoReelLevel = s.upgrades['auto_reel'] || 0;
-      const crewSpeedBonus = getCrewBonus(s.hiredCrew, s.crewLevels, 'SPEED_MULT');
       const comboSpeedBonus = currentCombo * 0.1;
       
       // Bobber Bonuses
@@ -368,7 +348,7 @@ const App: React.FC = () => {
       const bobberLureBonus = currentBobber.lureSpeedBonus || 0;
       const bobberBiteBonus = currentBobber.biteTimeBonus || 0;
 
-      const speedMult = 1 + crewSpeedBonus + comboSpeedBonus + bobberLureBonus;
+      const speedMult = 1 + comboSpeedBonus + bobberLureBonus;
 
       if (currentStatus === 'CASTING') {
         const autoCastLevel = s.upgrades['auto_cast'] || 0;
@@ -377,6 +357,12 @@ const App: React.FC = () => {
           const next = p + (0.05 * speedMult) + castSpeedBonus;
           if (next >= 1) {
             setStatus('WAITING');
+            
+            // Tutorial Step 3: Wait
+            if (s.tutorialStep === 2) {
+                setGameState(prev => ({ ...prev, tutorialStep: 3 }));
+            }
+
             return 0;
           }
           return next;
@@ -388,6 +374,12 @@ const App: React.FC = () => {
         if (Math.random() < biteChance) {
           setStatus('BITING');
           soundManager.playSfx('CLICK'); // Bite sound
+          soundManager.vibrate(200); // Haptic for bite
+          
+          // Tutorial Step 4: Reel
+          if (s.tutorialStep === 3) {
+              setGameState(prev => ({ ...prev, tutorialStep: 4 }));
+          }
         }
       }
       else if (currentStatus === 'BITING') {
@@ -425,14 +417,16 @@ const App: React.FC = () => {
         return;
     }
 
-    if (activeStory) {
-        // Block game interactions if story is open
-        return;
-    }
-
     if (status === 'IDLE') {
        setStatus('CASTING');
        soundManager.playSfx('CAST');
+       // Tutorial Step 2: Cast done -> Wait (handled in loop)
+       if (gameState.tutorialStep === 1) { // Clicked Intro
+           setGameState(prev => ({ ...prev, tutorialStep: 2 }));
+       } else if (gameState.tutorialStep === 2) {
+           // Wait for loop to change status
+       }
+
     } else if (status === 'WAITING') {
         // Foolproofing: Clicked too early
         soundManager.playSfx('ERROR');
@@ -456,12 +450,29 @@ const App: React.FC = () => {
     }
     setLastCatchTime(now);
 
+    // PRE-CALCULATE FISH to trigger side effects (Shake/Vibrate) before state update
+    const s = stateRef.current;
+    const luck = s.upgrades['bait_luck'] || 0;
+    const safetyLevel = s.upgrades['life_jacket'] || 0;
+    const preFish = getFish(luck, s.gameTime, s.activeLocation, s.activeBaitId, s.weather, safetyLevel);
+    const fishDef = FISH_TYPES.find(t => t.id === preFish.typeId);
+    
+    // Impact Feedback Logic
+    if (fishDef && (fishDef.rarity === 'Legendary' || fishDef.rarity === 'Mythic')) {
+        setIsShaking(true);
+        setTimeout(() => setIsShaking(false), 500); // Shake duration
+        soundManager.vibrate([100, 50, 100, 50, 200]); // Heavy pattern
+    } else {
+        soundManager.vibrate(100); // Light pattern
+    }
+
     setGameState(prev => {
-      const luck = prev.upgrades['bait_luck'] || 0;
-      const safetyLevel = prev.upgrades['life_jacket'] || 0;
-      const fish = getFish(luck, prev.gameTime, prev.activeLocation, prev.activeBaitId, prev.hiredCrew, prev.crewLevels, prev.weather, safetyLevel);
+      // NOTE: We regenerate fish here to be 100% consistent with the update closure, 
+      // or we could use the preFish. For simplicity/consistency with previous logic, we use preFish logic inside.
+      // Actually, let's just use the `preFish` we generated to ensure visual sync.
       
-      const fishDef = FISH_TYPES.find(t => t.id === fish.typeId);
+      const fish = preFish; // Use the one we calculated for effects
+      
       const isTreasure = fishDef?.rarity === 'Treasure';
       const rarity = fishDef ? fishDef.rarity : 'Common';
       const name = fishDef ? fishDef.name : 'Unknown';
@@ -498,7 +509,7 @@ const App: React.FC = () => {
       let isNewSpecies = false;
       if (!currentRecord.discovered) {
           isNewSpecies = true;
-          spawnParticles(10, 50, 70, '#facc15', 'TEXT', 'NEW DISCOVERY!');
+          spawnParticles(1, 50, 70, '#facc15', 'TEXT', 'NEW DISCOVERY!');
           spawnParticles(20, 50, 70, '#facc15', 'SPARKLE');
           soundManager.playSfx('LEVEL_UP'); 
       }
@@ -508,7 +519,7 @@ const App: React.FC = () => {
       let isNewRecord = false;
       if (fish.size && fish.size > currentRecord.maxSize && !isNewSpecies) { 
          isNewRecord = true;
-         spawnParticles(5, 50, 60, '#ef4444', 'TEXT', 'NEW RECORD!');
+         spawnParticles(1, 50, 60, '#ef4444', 'TEXT', 'NEW RECORD!');
       }
       fish.isNewRecord = isNewRecord;
 
@@ -526,10 +537,8 @@ const App: React.FC = () => {
           spawnParticles(3, 50, 20, '#22d3ee', 'SPARKLE');
       }
 
-      // XP Calculation (New)
+      // XP Calculation (Simplified)
       let xpGained = 1;
-      const crewXpBonus = getCrewBonus(prev.hiredCrew, prev.crewLevels, 'XP_MULT');
-      xpGained += Math.round(xpGained * crewXpBonus);
 
       // Add to inventory
       let newInventory = [...prev.inventory];
@@ -538,14 +547,9 @@ const App: React.FC = () => {
       }
       newInventory.push(fish);
 
-      // Update Quests
-      const quests = prev.quests.map(q => {
-        if (q.isCompleted || q.isClaimed) return q;
-        let newVal = q.currentValue;
-        if (q.targetType === 'CATCH_COUNT') newVal++;
-        if (q.targetType === 'CATCH_RARITY' && (q.targetId === fish.typeId || q.targetId === rarity)) newVal++;
-        return { ...q, currentValue: newVal, isCompleted: newVal >= q.targetValue };
-      });
+      // Tutorial Step 5: Inventory
+      let nextStep = prev.tutorialStep;
+      if (prev.tutorialStep === 4) nextStep = 5;
 
       return {
         ...prev,
@@ -556,7 +560,7 @@ const App: React.FC = () => {
         stats: { ...prev.stats, totalFishCaught: prev.stats.totalFishCaught + 1 },
         fishRecords: records,
         inventory: newInventory,
-        quests: quests
+        tutorialStep: nextStep
       };
     });
     setStatus('IDLE');
@@ -585,24 +589,16 @@ const App: React.FC = () => {
 
       if (fishPrice > 0) {
         if (showEffects) soundManager.playSfx('SELL');
-        let priceMult = 1 + getCrewBonus(prev.hiredCrew, prev.crewLevels, 'PRICE_MULT');
-        // Auto Sell logic removed
         
-        const finalPrice = Math.floor(fishPrice * priceMult);
+        const finalPrice = fishPrice; // No multiplier
         
         if (showEffects) {
            spawnParticles(1, 90, 10, '#facc15', 'TEXT', `+${formatNumber(finalPrice)}`);
         }
 
-        // Update Money Quests
-        const quests = prev.quests.map(q => {
-            if (q.isCompleted || q.isClaimed) return q;
-            if (q.targetType === 'EARN_MONEY') {
-                const newVal = q.currentValue + finalPrice;
-                return { ...q, currentValue: newVal, isCompleted: newVal >= q.targetValue };
-            }
-            return q;
-        });
+        // Tutorial Complete
+        let nextStep = prev.tutorialStep;
+        if (prev.tutorialStep === 5) nextStep = 0; // Finish
 
         return {
           ...prev,
@@ -610,28 +606,11 @@ const App: React.FC = () => {
           inventory: newInventory,
           aquarium: newAquarium,
           stats: { ...prev.stats, totalMoneyEarned: prev.stats.totalMoneyEarned + finalPrice },
-          quests: quests
+          tutorialStep: nextStep
         };
       }
       return prev;
     });
-  };
-
-  const claimQuest = (questId: string) => {
-      setGameState(prev => {
-          const quest = prev.quests.find(q => q.id === questId);
-          if (!quest || !quest.isCompleted || quest.isClaimed) return prev;
-          
-          soundManager.playSfx('LEVEL_UP');
-          spawnParticles(10, 50, 50, '#facc15', 'SPARKLE');
-          spawnParticles(1, 50, 30, '#facc15', 'TEXT', `+${formatNumber(quest.reward)} G`);
-
-          return {
-              ...prev,
-              money: prev.money + quest.reward,
-              quests: prev.quests.map(q => q.id === questId ? { ...q, isClaimed: true } : q)
-          };
-      });
   };
 
   const moveFishToTank = (uid: string) => {
@@ -653,10 +632,15 @@ const App: React.FC = () => {
       
       spawnParticles(5, 50, 80, '#22d3ee', 'SPARKLE');
       
+      // Tutorial Complete
+      let nextStep = prev.tutorialStep;
+      if (prev.tutorialStep === 5) nextStep = 0; // Finish
+
       return {
         ...prev,
         inventory: prev.inventory.filter(f => f.uid !== uid),
-        aquarium: [...prev.aquarium, fish]
+        aquarium: [...prev.aquarium, fish],
+        tutorialStep: nextStep
       };
     });
   };
@@ -679,32 +663,21 @@ const App: React.FC = () => {
   const sellAll = () => {
     soundManager.playSfx('SELL');
     setGameState(prev => {
-      let priceMult = 1 + getCrewBonus(prev.hiredCrew, prev.crewLevels, 'PRICE_MULT');
-      // Auto Sell logic removed
-
-      // Filter saleable items (Everything in inventory)
       const saleableItems = prev.inventory;
-
-      const total = saleableItems.reduce((sum, f) => sum + Math.floor(f.price * priceMult), 0);
+      const total = saleableItems.reduce((sum, f) => sum + f.price, 0);
       
       if (total > 0) spawnParticles(1, 90, 10, '#facc15', 'TEXT', `+${formatNumber(total)}`);
 
-       // Update Money Quests
-       const quests = prev.quests.map(q => {
-        if (q.isCompleted || q.isClaimed) return q;
-        if (q.targetType === 'EARN_MONEY') {
-            const newVal = q.currentValue + total;
-            return { ...q, currentValue: newVal, isCompleted: newVal >= q.targetValue };
-        }
-        return q;
-       });
+      // Tutorial Complete
+      let nextStep = prev.tutorialStep;
+      if (prev.tutorialStep === 5) nextStep = 0; // Finish
 
       return {
         ...prev,
         money: prev.money + total,
         inventory: [],
         stats: { ...prev.stats, totalMoneyEarned: prev.stats.totalMoneyEarned + total },
-        quests: quests
+        tutorialStep: nextStep
       };
     });
   };
@@ -828,6 +801,21 @@ const App: React.FC = () => {
   const unlockLocation = (id: string) => {
     const loc = LOCATIONS.find(l => l.id === id);
     if (!loc) return;
+    
+    // Currency Logic
+    if (loc.currency === 'GEMS') {
+        if ((gameState.gems >= loc.cost || isDev) && !gameState.unlockedLocations.includes(loc.id as any)) {
+            soundManager.playSfx('LEVEL_UP');
+            const newGems = isDev ? gameState.gems : gameState.gems - loc.cost;
+            setGameState(prev => ({ ...prev, gems: newGems, unlockedLocations: [...prev.unlockedLocations, loc.id as any] }));
+            spawnParticles(15, 50, 50, '#a855f7', 'SPARKLE');
+        } else {
+            soundManager.playSfx('ERROR');
+        }
+        return;
+    }
+
+    // Default Money Logic
     if ((gameState.money >= loc.cost || isDev) && !gameState.unlockedLocations.includes(loc.id as any)) {
         soundManager.playSfx('LEVEL_UP');
         const newMoney = isDev ? gameState.money : gameState.money - loc.cost;
@@ -836,44 +824,6 @@ const App: React.FC = () => {
     } else {
         soundManager.playSfx('ERROR');
     }
-  };
-
-  const hireCrew = (id: string) => {
-    const cat = CATS.find(c => c.id === id);
-    if(!cat) return;
-    if((gameState.money >= cat.cost || isDev) && !gameState.hiredCrew.includes(id)) {
-      soundManager.playSfx('LEVEL_UP');
-      const newMoney = isDev ? gameState.money : gameState.money - cat.cost;
-      setGameState(prev => ({ 
-          ...prev, 
-          money: newMoney, 
-          hiredCrew: [...prev.hiredCrew, id],
-          crewLevels: { ...prev.crewLevels, [id]: 1 } 
-      }));
-      spawnParticles(10, 50, 50, cat.color, 'SPARKLE');
-    } else {
-      soundManager.playSfx('ERROR');
-    }
-  };
-
-  const upgradeCrew = (id: string) => {
-      const cat = CATS.find(c => c.id === id);
-      if (!cat) return;
-      const currentLevel = gameState.crewLevels[id] || 1;
-      const cost = getCrewUpgradeCost(cat.cost, currentLevel);
-      
-      if (gameState.money >= cost || isDev) {
-          soundManager.playSfx('LEVEL_UP');
-          const newMoney = isDev ? gameState.money : gameState.money - cost;
-          setGameState(prev => ({
-              ...prev,
-              money: newMoney,
-              crewLevels: { ...prev.crewLevels, [id]: currentLevel + 1 }
-          }));
-          spawnParticles(5, 50, 50, '#f97316', 'SPARKLE');
-      } else {
-          soundManager.playSfx('ERROR');
-      }
   };
 
   const switchLocation = (id: string) => {
@@ -892,8 +842,8 @@ const App: React.FC = () => {
   if (appPhase === 'LOGIN') {
       return (
         <LoginScreen 
-            onLogin={(username, isDev) => handleLogin(username, isDev)} 
-            onGuestLogin={() => handleLogin('guest', false)}
+            onLogin={(username, isDev, displayName) => handleLogin(username, isDev, displayName)} 
+            onGuestLogin={handleGuestLogin}
         />
       );
   }
@@ -910,13 +860,23 @@ const App: React.FC = () => {
       level={Math.floor(Math.sqrt(gameState.xp))}
       activeTab={activeTab}
       onTabChange={(tab) => { soundManager.playSfx('CLICK'); setActiveTab(tab); }}
-      onOpenSettings={() => { soundManager.playSfx('CLICK'); setShowSettings(true); }}
-      onOpenAlmanac={() => { soundManager.playSfx('CLICK'); setShowAlmanac(true); }}
+      onOpenProfile={() => { soundManager.playSfx('CLICK'); setShowProfile(true); }}
+      playerAvatar={gameState.playerAvatar}
+      playerName={gameState.playerName}
+      isShaking={isShaking}
     >
+      {/* Interactive Tutorial Overlay */}
+      {gameState.tutorialStep > 0 && (
+          <TutorialOverlay 
+            step={gameState.tutorialStep} 
+            onNext={() => setGameState(prev => ({...prev, tutorialStep: 2}))} 
+          />
+      )}
+
       {/* 
         CONDITIONAL LAYOUT RENDER:
-        Only show FishingScene + QuestBoard if tab is INVENTORY.
-        Otherwise, render the specific full-page components (Shop/Crew/Aquarium).
+        Only show FishingScene if tab is INVENTORY.
+        Otherwise, render the specific full-page components (Shop/Aquarium).
       */}
       
       {activeTab === 'INVENTORY' ? (
@@ -938,23 +898,10 @@ const App: React.FC = () => {
               weather={gameState.weather}
             />
             
-            {/* Quest Board Overlay */}
-            <div className="absolute top-10 left-2 z-20 hidden sm:block">
-                <QuestBoard quests={gameState.quests} onClaim={claimQuest} />
-            </div>
-            <div className="absolute top-14 left-2 z-20 sm:hidden transform scale-75 origin-top-left">
-                <QuestBoard quests={gameState.quests} onClaim={claimQuest} />
-            </div>
-            
-            {/* Story Modal */}
-            {activeStory && (
-                <StoryModal event={activeStory} onClose={() => setActiveStory(null)} />
-            )}
-            
             {/* Map Selector Modal */}
             {showMapSelector && (
                 <div className="absolute inset-0 bg-black/80 z-40 flex items-center justify-center p-4">
-                    <div className="bg-slate-800 border-4 border-slate-600 p-2 w-full max-w-xs space-y-2 rounded shadow-2xl animate-fade-in">
+                    <div className="bg-slate-800 border-4 border-slate-600 p-2 w-full max-w-xs space-y-2 rounded shadow-2xl animate-fade-in max-h-[80vh] overflow-y-auto custom-scrollbar">
                         <h3 className="text-center text-yellow-400 font-bold mb-2">選擇釣點</h3>
                         {gameState.unlockedLocations.map(locId => {
                             const locDef = LOCATIONS.find(l => l.id === locId);
@@ -977,12 +924,12 @@ const App: React.FC = () => {
             )}
 
             {/* Offline Earnings Modal */}
-            {offlineEarnings > 0 && !activeStory && (
+            {offlineEarnings > 0 && (
               <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm">
                 <PixelCard className="w-full max-w-xs p-4 border-yellow-500 shadow-[0_0_50px_rgba(234,179,8,0.3)] animate-bounce-small">
                   <div className="text-center space-y-4">
                     <h2 className="text-xl font-bold text-yellow-400">歡迎回來!</h2>
-                    <p className="text-sm text-slate-300">貓咪們在你離開的時候<br/>非常努力工作喔！</p>
+                    <p className="text-sm text-slate-300">在你休息的期間，<br/>自動釣魚系統為你累積了收益。</p>
                     <div className="py-4 bg-slate-800 rounded border border-slate-600 flex justify-center items-center gap-2">
                         <span className="text-2xl font-mono text-green-400 font-bold">+{formatNumber(offlineEarnings)}</span>
                         <Coins size={24} className="text-green-400" />
@@ -1018,23 +965,11 @@ const App: React.FC = () => {
                 <Aquarium 
                   fish={gameState.aquarium}
                   tankLevel={gameState.upgrades['tank_size'] || 0}
-                  hiredCrew={gameState.hiredCrew}
-                  crewLevels={gameState.crewLevels}
                   activeSkinId={gameState.activeSkinId}
                   onSell={(id) => sellFish(id, true)}
                   onRetrieve={moveFishToInventory}
                 />
               </div>
-            )}
-            {activeTab === 'CREW' && (
-              <Crew 
-                money={gameState.money}
-                hiredCrew={gameState.hiredCrew}
-                crewLevels={gameState.crewLevels}
-                stats={gameState.stats}
-                onHire={hireCrew}
-                onUpgrade={upgradeCrew}
-              />
             )}
             {activeTab === 'SHOP' && (
               <Shop 
@@ -1052,17 +987,18 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Global Modals (Settings, Tutorial, Almanac) remain independent of tabs */}
-      {showSettings && (
-        <SettingsModal 
-          onClose={() => setShowSettings(false)} 
-          onResetSave={handleResetSave}
-          onLogout={handleLogout}
-          onOpenTutorial={() => setShowTutorial(true)}
-        />
-      )}
-      {showTutorial && (
-        <TutorialModal onClose={() => setShowTutorial(false)} />
+      {/* Global Modals */}
+      {showProfile && (
+          <ProfileModal 
+            onClose={() => setShowProfile(false)}
+            gameState={gameState}
+            onOpenAlmanac={() => { setShowProfile(false); setShowAlmanac(true); }}
+            onSelectAvatar={changeAvatar}
+            onChangeName={changeName}
+            onResetSave={handleResetSave}
+            onLogout={handleLogout}
+            onOpenTutorial={() => setGameState(prev => ({ ...prev, tutorialStep: 1 }))}
+          />
       )}
       {showAlmanac && (
           <AlmanacModal 

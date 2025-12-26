@@ -1,4 +1,4 @@
-
+<!-- 主頁面模板：包含全域樣式定義、字體引入與根節點容器。 -->
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -46,6 +46,15 @@
       }
       .animate-bob {
         animation: bob 2s infinite ease-in-out;
+      }
+
+      @keyframes shake-screen {
+        0%, 100% { transform: translate(0, 0) rotate(0deg); }
+        10%, 30%, 50%, 70%, 90% { transform: translate(-2px, -1px) rotate(-1deg); }
+        20%, 40%, 60%, 80% { transform: translate(2px, 1px) rotate(1deg); }
+      }
+      .animate-shake-screen {
+        animation: shake-screen 0.5s cubic-bezier(.36,.07,.19,.97) both;
       }
 
       /* CRT Scanline effect overlay (optional but cool) */

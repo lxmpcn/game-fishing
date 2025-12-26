@@ -1,6 +1,7 @@
+// 開始畫面組件：顯示遊戲標題、Logo 與進入遊戲的入口。
 
 import React from 'react';
-import { Fish, Waves, Play, Gamepad2 } from 'lucide-react';
+import { Fish, Waves } from 'lucide-react';
 
 interface StartScreenProps {
   onStart: () => void;
@@ -29,29 +30,29 @@ const StartScreen: React.FC<StartScreenProps> = ({ onStart }) => {
         <div className="flex flex-col items-center">
            {/* Icon Badge */}
            <div className="mb-6 relative">
-              <div className="absolute inset-0 bg-yellow-400 blur-xl opacity-20 rounded-full animate-pulse"></div>
-              <div className="bg-slate-900 border-4 border-yellow-500 p-4 rounded-2xl shadow-[0_0_20px_rgba(234,179,8,0.5)] transform rotate-3">
-                  <Fish size={48} className="text-yellow-400 drop-shadow-md" />
+              <div className="absolute inset-0 bg-cyan-400 blur-xl opacity-20 rounded-full animate-pulse"></div>
+              <div className="bg-slate-900 border-4 border-cyan-500 p-4 rounded-2xl shadow-[0_0_20px_rgba(6,182,212,0.5)] transform rotate-3">
+                  <Fish size={48} className="text-cyan-400 drop-shadow-md" />
               </div>
-              <div className="absolute -bottom-2 -right-2 bg-slate-900 border-4 border-cyan-500 p-3 rounded-xl shadow-[0_0_20px_rgba(6,182,212,0.5)] transform -rotate-6">
-                  <Waves size={32} className="text-cyan-400" />
+              <div className="absolute -bottom-2 -right-2 bg-slate-900 border-4 border-yellow-500 p-3 rounded-xl shadow-[0_0_20px_rgba(234,179,8,0.5)] transform -rotate-6">
+                  <Waves size={32} className="text-yellow-400" />
               </div>
            </div>
 
            {/* Title Text */}
            <div className="text-center space-y-2">
-               <h1 className="text-5xl md:text-6xl font-bold pixel-font tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 to-yellow-600 drop-shadow-[4px_4px_0_#000]">
-                 像素貓咪
+               <h1 className="text-5xl md:text-6xl font-bold pixel-font tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-cyan-200 to-cyan-600 drop-shadow-[4px_4px_0_#000]">
+                 像素釣手
                </h1>
-               <h2 className="text-3xl md:text-4xl font-bold pixel-font tracking-widest text-cyan-300 drop-shadow-[3px_3px_0_#000] -mt-1">
-                 釣魚大亨
+               <h2 className="text-xl md:text-2xl font-bold pixel-font tracking-[0.5em] text-yellow-300 drop-shadow-[2px_2px_0_#000] mt-2 uppercase">
+                 Pixel Angler
                </h2>
            </div>
            
-           <div className="mt-4 flex items-center gap-2 text-[10px] text-slate-500 font-mono border border-slate-800 px-2 py-1 rounded bg-black/50">
+           <div className="mt-6 flex items-center gap-2 text-[10px] text-slate-500 font-mono border border-slate-800 px-2 py-1 rounded bg-black/50">
               <span>EST. 2024</span>
               <span>•</span>
-              <span>CAT STUDIO</span>
+              <span>PIXEL STUDIO</span>
            </div>
         </div>
 

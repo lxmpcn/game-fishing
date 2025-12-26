@@ -1,7 +1,9 @@
+// 型別定義文件：定義遊戲中使用的所有資料結構與介面 (如魚種、遊戲狀態、道具等)。
 
 export type Rarity = 'Common' | 'Rare' | 'Epic' | 'Legendary' | 'Mythic' | 'Junk' | 'Treasure';
 export type TimeOfDay = 'Day' | 'Night' | 'All';
-export type LocationId = 'pond' | 'river' | 'ocean' | 'swamp' | 'sky' | 'deep_sea';
+// 已移除 lebron_harbor
+export type LocationId = 'pond' | 'river' | 'ocean' | 'swamp' | 'deep_sea' | 'volcano' | 'sky';
 export type WeatherType = 'Sunny' | 'Rain' | 'Storm';
 
 export interface FishType {
@@ -13,9 +15,9 @@ export interface FishType {
   activeTime: TimeOfDay;
   locations: LocationId[];
   weatherPreference?: WeatherType[];
-  minSize?: number; // Optional for Junk/Treasure
-  maxSize?: number; // Optional for Junk/Treasure
-  description?: string; // Flavor text
+  minSize?: number; // 雜物/寶藏可選
+  maxSize?: number; // 雜物/寶藏可選
+  description?: string; // 描述文本
 }
 
 export interface CaughtFish {
@@ -23,7 +25,7 @@ export interface CaughtFish {
   typeId: string;
   price: number;
   caughtAt: number;
-  size?: number; // Optional, null for Junk/Treasure
+  size?: number; // 可選，雜物/寶藏為 null
   isNewRecord?: boolean; 
   isNewSpecies?: boolean;
 }
@@ -33,21 +35,6 @@ export interface FishRecord {
   minSize: number;
   maxSize: number;
   discovered: boolean;
-}
-
-export interface Quest {
-  id: string;
-  title: string; // New: Short title like "Grandpa's Recipe"
-  giver: string; // New: Who gave the quest?
-  description: string; // Flavor text
-  requirementText: string; // Short text like "Catch 5 Fish" for UI
-  targetType: 'CATCH_COUNT' | 'EARN_MONEY' | 'CATCH_RARITY' | 'CATCH_SPECIFIC';
-  targetValue: number;
-  targetId?: string; // Can be species ID or Rarity
-  currentValue: number;
-  reward: number;
-  isCompleted: boolean;
-  isClaimed: boolean;
 }
 
 export type UpgradeType = 'SPEED' | 'LUCK' | 'AUTO_CAST' | 'AUTO_REEL' | 'AUTO_SELL' | 'TANK_SIZE' | 'OFFLINE' | 'SAFETY';
@@ -83,15 +70,14 @@ export interface BobberDef {
   iconColor: string;
 }
 
-// New: Aquarium Skins with Unlock Logic
 export interface AquariumSkinDef {
   id: string;
   name: string;
   description: string;
   costGems: number;
   bgGradient: string;
-  decorElement?: string; // For rendering special CSS/SVG decor
-  requiredLocation?: LocationId; // New field: Requires this map to be unlocked
+  decorElement?: string;
+  requiredLocation?: LocationId;
 }
 
 export interface ActiveBait {
@@ -105,19 +91,7 @@ export interface LocationDef {
   cost: number;
   description: string;
   bgGradient: string;
-}
-
-export type BonusType = 'INCOME_MULT' | 'PRICE_MULT' | 'LUCK_FLAT' | 'SPEED_MULT' | 'XP_MULT';
-
-export interface CatDef {
-  id: string;
-  name: string;
-  title: string;
-  description: string;
-  cost: number;
-  bonusType: BonusType;
-  bonusValue: number;
-  color: string; 
+  currency?: 'MONEY' | 'GEMS';
 }
 
 export interface GameStats {
@@ -125,24 +99,16 @@ export interface GameStats {
   totalMoneyEarned: number;
 }
 
-export interface StoryEvent {
-  id: string;
-  trigger: 'START' | 'CATCH_1' | 'EARN_1000' | 'UNLOCK_LOCATION';
-  title: string;
-  content: string;
-  speaker: 'PLAYER' | 'SHOPKEEPER';
-}
-
 export interface GameState {
   money: number;
-  gems: number; // New Currency
+  gems: number;
   xp: number;
   inventory: CaughtFish[];
   aquarium: CaughtFish[];
   upgrades: Record<string, number>;
   unlockedFish: string[]; 
   fishRecords: Record<string, FishRecord>; 
-  quests: Quest[]; 
+  // 任務系統已移除
   gameTime: number;
   weather: WeatherType; 
   activeLocation: LocationId;
@@ -155,16 +121,18 @@ export interface GameState {
   unlockedBobbers: string[];
   activeBobberId: string;
 
-  // Skin System
+  // 外觀系統
   unlockedSkins: string[];
   activeSkinId: string;
 
-  hiredCrew: string[];
-  crewLevels: Record<string, number>;
-  
   stats: GameStats;
   
-  viewedStories: string[];
-  
+  // 玩家資訊
+  playerAvatar: string;
+  playerName: string;
+
   lastSaveTime: number;
+  
+  // 教學狀態
+  tutorialStep: number; 
 }

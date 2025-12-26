@@ -1,3 +1,4 @@
+// 魚類圖示組件：根據魚種 ID 繪製對應的像素風格 SVG 魚類圖案。
 
 import React from 'react';
 
@@ -10,7 +11,7 @@ interface FishIconProps {
 const FishIcon: React.FC<FishIconProps> = ({ speciesId, size = 32, className = "" }) => {
   const renderPaths = () => {
     switch (speciesId) {
-      // === JUNK / SPECIAL ===
+      // === 雜物 / 特殊 ===
       case 'boot':
         return (
           <>
@@ -25,14 +26,14 @@ const FishIcon: React.FC<FishIconProps> = ({ speciesId, size = 32, className = "
             <path fill="#bae6fd" d="M6 3 h4 v2 h-4 z M5 5 h6 v9 h-6 z" opacity="0.8" />
             <path fill="#38bdf8" d="M6 3 h4 v1 h-4 z" />
             <path fill="#fff" d="M6 6 h1 v6 h-1 z" opacity="0.4" />
-            <path fill="#0284c7" d="M5 8 h6 v2 h-6 z" opacity="0.3" /> {/* Label */}
+            <path fill="#0284c7" d="M5 8 h6 v2 h-6 z" opacity="0.3" />
           </>
         );
       case 'ghost_net':
         return (
           <>
              <path fill="#155e75" d="M3 4 h2 v2 h-2 z M7 3 h2 v2 h-2 z M11 4 h2 v2 h-2 z M4 8 h2 v2 h-2 z M9 8 h2 v2 h-2 z M6 12 h4 v2 h-4 z" opacity="0.7" />
-             <path fill="#0891b2" d="M5 5 h6 v1 h-6 z M4 9 h8 v1 h-8 z" opacity="0.5" /> {/* Strings */}
+             <path fill="#0891b2" d="M5 5 h6 v1 h-6 z M4 9 h8 v1 h-8 z" opacity="0.5" />
           </>
         );
       case 'chest':
@@ -44,8 +45,32 @@ const FishIcon: React.FC<FishIconProps> = ({ speciesId, size = 32, className = "
              <path fill="#fbbf24" d="M7 8 h2 v3 h-2 z" />
           </>
         );
+      case 'pumice_stone':
+        return (
+            <>
+                <path fill="#d6d3d1" d="M4 6 h8 v6 h-8 z" />
+                <path fill="#a8a29e" d="M2 7 h2 v4 h-2 z M12 7 h2 v4 h-2 z" />
+                <path fill="#78716c" d="M5 7 h1 v1 h-1 z M9 8 h1 v1 h-1 z M7 10 h1 v1 h-1 z" />
+            </>
+        );
+      case 'space_debris':
+        return (
+            <>
+                <path fill="#64748b" d="M6 6 h4 v4 h-4 z" /> {/* Central Hub */}
+                <path fill="#38bdf8" d="M2 3 h3 v4 h-3 z M11 9 h3 v4 h-3 z" /> {/* Solar Panels */}
+                <path fill="#475569" d="M5 7 h1 v1 h-1 z M10 8 h1 v1 h-1 z" /> {/* Arms */}
+            </>
+        );
+      case 'star_fragment':
+        return (
+            <>
+                <path fill="#e0f2fe" d="M7 2 h2 v12 h-2 z M2 7 h12 v2 h-12 z" /> {/* Cross */}
+                <path fill="#bae6fd" d="M5 5 h2 v2 h-2 z M9 5 h2 v2 h-2 z M5 9 h2 v2 h-2 z M9 9 h2 v2 h-2 z" opacity="0.6" /> {/* Inner corners */}
+                <path fill="#fff" d="M7 7 h2 v2 h-2 z" /> {/* Center */}
+            </>
+        );
 
-      // === COMMON ===
+      // === 普通 ===
       case 'minnow': 
         return (
           <>
@@ -62,6 +87,15 @@ const FishIcon: React.FC<FishIconProps> = ({ speciesId, size = 32, className = "
             <path fill="#fdba74" d="M10 6 h2 v4 h-2 z" />
             <path fill="#fb923c" d="M12 5 h1 v6 h-1 z" />
             <path fill="#000" d="M8 6 h1 v1 h-1 z" />
+            </>
+        );
+      case 'magma_guppy':
+        return (
+            <>
+            <path fill="#f97316" d="M5 7 h5 v3 h-5 z" />
+            <path fill="#fdba74" d="M10 6 h4 v5 h-4 z" /> {/* Big tail */}
+            <path fill="#000" d="M8 7 h1 v1 h-1 z" />
+            <path fill="#7c2d12" d="M5 8 h1 v1 h-1 z" opacity="0.5" />
             </>
         );
       case 'tiger_prawn':
@@ -87,12 +121,21 @@ const FishIcon: React.FC<FishIconProps> = ({ speciesId, size = 32, className = "
           <>
             <path fill="#84cc16" d="M3 5 h9 v7 h-9 z" />
             <path fill="#ecfccb" d="M3 10 h8 v2 h-8 z" />
-            <path fill="#3f6212" d="M5 5 h1 v5 h-1 z M8 5 h1 v5 h-1 z M11 5 h1 v5 h-1 z" opacity="0.4" />
             <path fill="#365314" d="M4 3 h2 v2 h-2 z M7 4 h2 v1 h-2 z" />
             <path fill="#3f6212" d="M12 7 h2 v3 h-2 z" />
             <path fill="#1a2e05" d="M14 6 h1 v5 h-1 z" />
             <path fill="#000" d="M10 6 h1 v1 h-1 z" />
           </>
+        );
+      case 'crayfish':
+        return (
+            <>
+            <path fill="#ef4444" d="M5 6 h5 v5 h-5 z" /> {/* Body */}
+            <path fill="#b91c1c" d="M10 5 h3 v3 h-3 z" /> {/* Head */}
+            <path fill="#ef4444" d="M13 4 h1 v2 h-1 z M13 7 h1 v2 h-1 z" /> {/* Claws */}
+            <path fill="#991b1b" d="M3 7 h2 v3 h-2 z" /> {/* Tail */}
+            <path fill="#000" d="M11 5 h1 v1 h-1 z" />
+            </>
         );
       case 'carp':
         return (
@@ -129,13 +172,23 @@ const FishIcon: React.FC<FishIconProps> = ({ speciesId, size = 32, className = "
         );
       case 'crab':
       case 'mitten_crab':
-      case 'king_crab':
-        const crabColor = speciesId === 'king_crab' ? '#991b1b' : (speciesId === 'mitten_crab' ? '#57534e' : '#f87171');
+        const isMitten = speciesId === 'mitten_crab';
         return (
             <>
-            <path fill={crabColor} d="M4 6 h8 v5 h-8 z" />
-            <path fill={crabColor} d="M2 5 h2 v3 h-2 z M12 5 h2 v3 h-2 z" />
-            <path fill={crabColor} d="M3 11 h1 v1 h-1 z M12 11 h1 v1 h-1 z" />
+            <path fill={isMitten ? '#57534e' : '#f87171'} d="M4 6 h8 v5 h-8 z" />
+            <path fill={isMitten ? '#44403c' : '#f87171'} d="M2 5 h2 v3 h-2 z M12 5 h2 v3 h-2 z" />
+            {isMitten && <path fill="#292524" d="M1 4 h2 v2 h-2 z M13 4 h2 v2 h-2 z" />} {/* Furry claws */}
+            <path fill={isMitten ? '#78350f' : '#f87171'} d="M3 11 h1 v1 h-1 z M12 11 h1 v1 h-1 z" />
+            <path fill="#000" d="M6 6 h1 v1 h-1 z M9 6 h1 v1 h-1 z" />
+            </>
+        );
+      case 'king_crab':
+        return (
+            <>
+            <path fill="#991b1b" d="M5 6 h6 v5 h-6 z" />
+            <path fill="#7f1d1d" d="M4 6 h1 v2 h-1 z M11 6 h1 v2 h-1 z" /> {/* Spikes */}
+            <path fill="#ef4444" d="M1 4 h2 v4 h-2 z M13 4 h2 v4 h-2 z" /> {/* Legs */}
+            <path fill="#ef4444" d="M2 9 h1 v2 h-1 z M13 9 h1 v2 h-1 z" />
             <path fill="#000" d="M6 6 h1 v1 h-1 z M9 6 h1 v1 h-1 z" />
             </>
         );
@@ -143,14 +196,14 @@ const FishIcon: React.FC<FishIconProps> = ({ speciesId, size = 32, className = "
         return (
             <>
             <path fill="#0e7490" d="M4 6 h8 v6 h-8 z" />
-            <path fill="#22d3ee" d="M10 6 h1 v1 h-1 z M9 5 h1 v1 h-1 z M8 4 h1 v1 h-1 z" /> {/* Stalk */}
-            <path fill="#facc15" d="M7 3 h2 v2 h-2 z" /> {/* Light */}
+            <path fill="#22d3ee" d="M10 6 h1 v1 h-1 z M9 5 h1 v1 h-1 z M8 4 h1 v1 h-1 z" />
+            <path fill="#facc15" d="M7 3 h2 v2 h-2 z" />
             <path fill="#000" d="M10 8 h1 v1 h-1 z" />
             <path fill="#155e75" d="M12 7 h2 v4 h-2 z" />
             </>
         );
 
-      // === RARE ===
+      // === 稀有 ===
       case 'trout':
         return (
           <>
@@ -172,13 +225,24 @@ const FishIcon: React.FC<FishIconProps> = ({ speciesId, size = 32, className = "
             <path fill="#9f1239" d="M12 11 h1 v1 h-1 z" />
           </>
         );
+      case 'obsidian_bass':
+        return (
+          <>
+            <path fill="#451a03" d="M2 5 h11 v7 h-11 z" />
+            <path fill="#78350f" d="M2 5 h11 v2 h-11 z" />
+            <path fill="#292524" d="M2 10 h11 v2 h-11 z" />
+            <path fill="#000" d="M13 6 h2 v5 h-2 z" />
+            <path fill="#f59e0b" d="M11 6 h1 v1 h-1 z" />
+            <path fill="#292524" d="M5 2 h2 v3 h-2 z M8 3 h2 v2 h-2 z" /> {/* Spiky Fin */}
+          </>
+        );
       case 'lobster':
         return (
             <>
             <path fill="#dc2626" d="M5 6 h6 v7 h-6 z" />
             <path fill="#991b1b" d="M5 6 h6 v2 h-6 z" />
-            <path fill="#ef4444" d="M2 3 h3 v4 h-3 z M11 3 h3 v4 h-3 z" /> {/* Claws */}
-            <path fill="#7f1d1d" d="M6 13 h4 v2 h-4 z" /> {/* Tail */}
+            <path fill="#ef4444" d="M2 3 h3 v4 h-3 z M11 3 h3 v4 h-3 z" />
+            <path fill="#7f1d1d" d="M6 13 h4 v2 h-4 z" />
             <path fill="#000" d="M6 5 h1 v1 h-1 z M9 5 h1 v1 h-1 z" />
             </>
         );
@@ -186,8 +250,8 @@ const FishIcon: React.FC<FishIconProps> = ({ speciesId, size = 32, className = "
         return (
             <>
             <path fill="#fda4af" d="M4 6 h8 v6 h-8 z" />
-            <path fill="#f43f5e" d="M7 8 h2 v2 h-2 z" /> {/* Nose */}
-            <path fill="#be123c" d="M5 10 h6 v1 h-6 z" /> {/* Mouth */}
+            <path fill="#f43f5e" d="M7 8 h2 v2 h-2 z" />
+            <path fill="#be123c" d="M5 10 h6 v1 h-6 z" />
             <path fill="#000" d="M5 7 h1 v1 h-1 z M10 7 h1 v1 h-1 z" />
             </>
         );
@@ -218,7 +282,15 @@ const FishIcon: React.FC<FishIconProps> = ({ speciesId, size = 32, className = "
              <path fill="#22d3ee" d="M3 7 h10 v1 h-10 z" />
              <path fill="#f43f5e" d="M3 8 h10 v1 h-10 z" />
              <path fill="#000" d="M11 6 h1 v1 h-1 z" />
-             <path fill="#94a3b8" d="M13 7 h1 v2 h-1 z" opacity="0.5" />
+          </>
+        );
+      case 'ember_tetra':
+        return (
+          <>
+             <path fill="#7f1d1d" d="M3 6 h10 v4 h-10 z" />
+             <path fill="#ef4444" d="M3 7 h10 v1 h-10 z" />
+             <path fill="#f59e0b" d="M3 8 h10 v1 h-10 z" />
+             <path fill="#000" d="M11 6 h1 v1 h-1 z" />
           </>
         );
       case 'cloud_ray':
@@ -231,18 +303,17 @@ const FishIcon: React.FC<FishIconProps> = ({ speciesId, size = 32, className = "
             <path fill="#000" d="M6 5 h1 v1 h-1 z M9 5 h1 v1 h-1 z" />
           </>
         );
-
-      // === EPIC ===
-      case 'eel':
+      case 'lion_fish':
         return (
-          <>
-            <path fill="#eab308" d="M1 8 h3 v2 h-3 z M3 7 h2 v2 h-2 z M5 6 h2 v2 h-2 z M7 7 h2 v2 h-2 z M9 8 h2 v2 h-2 z M11 7 h2 v2 h-2 z" />
-            <path fill="#a16207" d="M13 6 h2 v3 h-2 z" />
-            <path fill="#fef08a" d="M2 9 h2 v1 h-2 z M4 8 h2 v1 h-2 z M6 7 h2 v1 h-2 z" opacity="0.5" />
-            <path fill="#000" d="M14 7 h1 v1 h-1 z" />
-            <path fill="#fff" d="M4 6 h1 v1 h-1 z M8 10 h1 v1 h-1 z M12 5 h1 v1 h-1 z" />
-          </>
+            <>
+            <path fill="#fde047" d="M4 5 h8 v6 h-8 z" />
+            <path fill="#a16207" d="M2 4 h2 v8 h-2 z M12 4 h2 v8 h-2 z" />
+            <path fill="#a16207" d="M4 3 h8 v2 h-8 z M4 11 h8 v2 h-8 z" />
+            <path fill="#000" d="M10 6 h1 v1 h-1 z" />
+            </>
         );
+
+      // === 史詩 ===
       case 'tuna':
           return (
             <>
@@ -258,10 +329,10 @@ const FishIcon: React.FC<FishIconProps> = ({ speciesId, size = 32, className = "
         return (
             <>
             <path fill="#06b6d4" d="M3 5 h10 v8 h-10 z" />
-            <path fill="#0891b2" d="M3 3 h4 v2 h-4 z" /> {/* Hump */}
+            <path fill="#0891b2" d="M3 3 h4 v2 h-4 z" />
             <path fill="#155e75" d="M13 6 h2 v5 h-2 z" />
             <path fill="#000" d="M10 7 h1 v1 h-1 z" />
-            <path fill="#a5f3fc" d="M11 9 h2 v2 h-2 z" /> {/* Lips */}
+            <path fill="#a5f3fc" d="M11 9 h2 v2 h-2 z" />
             </>
         );
       case 'viperfish':
@@ -270,16 +341,16 @@ const FishIcon: React.FC<FishIconProps> = ({ speciesId, size = 32, className = "
             <path fill="#581c87" d="M3 6 h10 v4 h-10 z" />
             <path fill="#a855f7" d="M3 6 h10 v1 h-10 z" />
             <path fill="#000" d="M10 6 h1 v1 h-1 z" />
-            <path fill="#fff" d="M11 10 h1 v2 h-1 z M9 10 h1 v2 h-1 z M7 10 h1 v2 h-1 z" /> {/* Teeth */}
+            <path fill="#fff" d="M11 10 h1 v2 h-1 z M9 10 h1 v2 h-1 z M7 10 h1 v2 h-1 z" />
             <path fill="#2e1065" d="M13 7 h2 v2 h-2 z" />
             </>
         );
       case 'skeleton_fish':
         return (
             <>
-            <path fill="#e5e5e5" d="M4 7 h8 v1 h-8 z" /> {/* Spine */}
-            <path fill="#e5e5e5" d="M5 5 h1 v5 h-1 z M7 5 h1 v5 h-1 z M9 5 h1 v5 h-1 z" /> {/* Ribs */}
-            <path fill="#e5e5e5" d="M11 6 h3 v3 h-3 z" /> {/* Head */}
+            <path fill="#e5e5e5" d="M4 7 h8 v1 h-8 z" />
+            <path fill="#e5e5e5" d="M5 5 h1 v5 h-1 z M7 5 h1 v5 h-1 z M9 5 h1 v5 h-1 z" />
+            <path fill="#e5e5e5" d="M11 6 h3 v3 h-3 z" />
             <path fill="#000" d="M12 7 h1 v1 h-1 z" />
             </>
         );
@@ -306,7 +377,7 @@ const FishIcon: React.FC<FishIconProps> = ({ speciesId, size = 32, className = "
           </>
         );
 
-      // === LEGENDARY ===
+      // === 傳說 ===
       case 'koi':
         return (
           <>
@@ -316,6 +387,17 @@ const FishIcon: React.FC<FishIconProps> = ({ speciesId, size = 32, className = "
             <path fill="#000" d="M12 6 h1 v1 h-1 z" />
             <path fill="#ef4444" d="M2 6 h1 v1 h-1 z" />
             <path fill="#cbd5e1" d="M6 11 h3 v1 h-3 z M6 4 h3 v1 h-3 z" opacity="0.5" />
+          </>
+        );
+      case 'phoenix_koi':
+        return (
+          <>
+            <path fill="#fbbf24" d="M2 5 h12 v6 h-12 z" />
+            <path fill="#ef4444" d="M4 5 h2 v3 h-2 z M8 8 h3 v3 h-3 z M11 5 h2 v2 h-2 z" />
+            <path fill="#ef4444" d="M14 6 h2 v4 h-2 z" />
+            <path fill="#000" d="M12 6 h1 v1 h-1 z" />
+            <path fill="#f97316" d="M2 6 h1 v1 h-1 z" />
+            <path fill="#fca5a5" d="M5 3 h1 v2 h-1 z M7 2 h1 v3 h-1 z" /> {/* Flames */}
           </>
         );
       case 'arowana':
@@ -346,7 +428,7 @@ const FishIcon: React.FC<FishIconProps> = ({ speciesId, size = 32, className = "
         return (
             <>
             <path fill="#e2e8f0" d="M2 6 h12 v4 h-12 z" />
-            <path fill="#ef4444" d="M3 4 h1 v2 h-1 z M5 3 h1 v3 h-1 z M7 4 h1 v2 h-1 z M9 3 h1 v3 h-1 z" /> {/* Red fins */}
+            <path fill="#ef4444" d="M3 4 h1 v2 h-1 z M5 3 h1 v3 h-1 z M7 4 h1 v2 h-1 z M9 3 h1 v3 h-1 z" />
             <path fill="#000" d="M3 7 h1 v1 h-1 z" />
             <path fill="#94a3b8" d="M5 8 h1 v1 h-1 z M9 8 h1 v1 h-1 z" opacity="0.5" />
             </>
@@ -355,8 +437,8 @@ const FishIcon: React.FC<FishIconProps> = ({ speciesId, size = 32, className = "
         return (
             <>
             <path fill="#f43f5e" d="M4 6 h10 v5 h-10 z" />
-            <path fill="#f43f5e" d="M1 7 h3 v1 h-3 z" /> {/* Long nose */}
-            <path fill="#fff" d="M5 9 h3 v1 h-3 z" /> {/* Jaw */}
+            <path fill="#f43f5e" d="M1 7 h3 v1 h-3 z" />
+            <path fill="#fff" d="M5 9 h3 v1 h-3 z" />
             <path fill="#881337" d="M14 6 h2 v5 h-2 z" />
             <path fill="#000" d="M5 6 h1 v1 h-1 z" />
             </>
@@ -378,7 +460,7 @@ const FishIcon: React.FC<FishIconProps> = ({ speciesId, size = 32, className = "
             </>
         );
 
-      // === MYTHIC ===
+      // === 神話 ===
       case 'leviathan':
         return (
           <>
@@ -400,6 +482,17 @@ const FishIcon: React.FC<FishIconProps> = ({ speciesId, size = 32, className = "
             <path fill="#34d399" d="M3 6 h1 v1 h-1 z M8 5 h1 v1 h-1 z M13 6 h1 v1 h-1 z" opacity="0.5" />
           </>
         );
+      case 'fire_dragon':
+        return (
+          <>
+            <path fill="#7f1d1d" d="M5 8 h6 v4 h-6 z" />
+            <path fill="#dc2626" d="M7 3 h4 v5 h-4 z" /> {/* Main Head */}
+            <path fill="#000" d="M9 5 h1 v1 h-1 z" />
+            <path fill="#450a0a" d="M6 12 h4 v2 h-4 z" />
+            <path fill="#fca5a5" d="M12 5 h3 v6 h-3 z" /> {/* Wing */}
+            <path fill="#fca5a5" d="M1 5 h3 v6 h-3 z" /> {/* Wing */}
+          </>
+        );
       case 'star_whale':
         return (
            <>
@@ -415,10 +508,10 @@ const FishIcon: React.FC<FishIconProps> = ({ speciesId, size = 32, className = "
       case 'giant_squid':
         return (
             <>
-            <path fill="#b91c1c" d="M10 4 h4 v8 h-4 z" /> {/* Head */}
+            <path fill="#b91c1c" d="M10 4 h4 v8 h-4 z" />
             <path fill="#ef4444" d="M10 4 h2 v8 h-2 z" />
             <path fill="#000" d="M11 6 h1 v2 h-1 z" />
-            <path fill="#991b1b" d="M2 5 h8 v1 h-8 z M2 7 h8 v1 h-8 z M2 9 h8 v1 h-8 z" /> {/* Tentacles */}
+            <path fill="#991b1b" d="M2 5 h8 v1 h-8 z M2 7 h8 v1 h-8 z M2 9 h8 v1 h-8 z" />
             </>
         );
       case 'coelacanth':
@@ -426,9 +519,9 @@ const FishIcon: React.FC<FishIconProps> = ({ speciesId, size = 32, className = "
             <>
             <path fill="#1e3a8a" d="M2 5 h12 v7 h-12 z" />
             <path fill="#172554" d="M4 6 h1 v1 h-1 z M7 6 h1 v1 h-1 z M10 6 h1 v1 h-1 z" opacity="0.5" />
-            <path fill="#60a5fa" d="M14 6 h2 v5 h-2 z" /> {/* Tail */}
-            <path fill="#60a5fa" d="M6 12 h2 v2 h-2 z M10 12 h2 v2 h-2 z" /> {/* Bottom Fins */}
-            <path fill="#60a5fa" d="M8 3 h2 v2 h-2 z" /> {/* Top Fin */}
+            <path fill="#60a5fa" d="M14 6 h2 v5 h-2 z" />
+            <path fill="#60a5fa" d="M6 12 h2 v2 h-2 z M10 12 h2 v2 h-2 z" />
+            <path fill="#60a5fa" d="M8 3 h2 v2 h-2 z" />
             <path fill="#000" d="M3 6 h1 v1 h-1 z" />
             </>
         );
@@ -436,7 +529,7 @@ const FishIcon: React.FC<FishIconProps> = ({ speciesId, size = 32, className = "
         return (
             <>
             <path fill="#4c1d95" d="M3 4 h10 v8 h-10 z" />
-            <path fill="#000" d="M4 6 h2 v4 h-2 z" /> {/* Maw */}
+            <path fill="#000" d="M4 6 h2 v4 h-2 z" />
             <path fill="#8b5cf6" d="M13 7 h3 v2 h-3 z" />
             <path fill="#a78bfa" d="M2 4 h1 v2 h-1 z M2 10 h1 v2 h-1 z" />
             </>

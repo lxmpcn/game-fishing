@@ -1,3 +1,4 @@
+// 物品圖示組件：根據類型 (魚餌/浮標) 與 ID 繪製對應的 SVG 圖案。
 
 import React from 'react';
 
